@@ -7,9 +7,9 @@ const router = express.Router();
 /********************************FEATURE-I APIS*************************************/
 router.post('/register', userController.createUser);
 
-// router.get('/login', userController.loginUser);
+ router.post('/login', userController.userLogin);
 
-// router.get('/user/:userId/profile', userController.getProfile);
+router.get('/user/:userId/profile', userController.getUser);
 
 // router.put('/user/:userId/profile', userController.updateProfile);
 

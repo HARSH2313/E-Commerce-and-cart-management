@@ -3,45 +3,12 @@
 // const registerUser = async function (req, res){
 //   try{
 
-//   }catch(err){
-//     res.status(500).send({status: false, message: err.message});
-//   }
-// }
-
-// const loginUser = async function (req, res){
-//   try{
-
-//   }catch(err){
-//     res.status(500).send({status: false, message: err.message});
-//   }
-// }
-
-// const getProfile = async function (req, res){
-//   try{
-
-//   }catch(err){
-//     res.status(500).send({status: false, message: err.message});
-//   }
-// }
-
-// const updateProfile = async function (req, res){
-//   try{
-//     let dataToUpdate = req.body;
-//     let {fname, lname, email, profileImage, phone, password, address, billing} = dataToUpdate;
-
-//     res.status(200).send({status: true, message: 'Updated Successfully', data: dataToUpdate});
-//   }catch(err){
-//     res.status(500).send({status: false, message: err.message});
-//   }
-// }
-
-// module.exports = {registerUser, loginUser, getProfile, updateProfile};
 
 const userModel = require("../models/userModel")
-//const jwt = require("jsonwebtoken")
-const uploadFile = require('../awsS3/aws');
+const jwt = require("jsonwebtoken")
+const { uploadFile } = require('../awsS3/aws');
 const chekEmail = require("email-validator")
-
+const aws = require('aws-sdk')
 
 const isValid = function (value) {
   if (typeof value === "undefined" || value === null) return false;
@@ -50,6 +17,10 @@ const isValid = function (value) {
   return true;
 };
 
+const isValidFiles = function(files)  {
+  if (files && files.length > 0)
+      return true;
+}
 
 
 
@@ -57,13 +28,34 @@ const isValid = function (value) {
 const createUser = async function(req, res){
   try {
     let getUsersData = req.body
-    getUsersData.profileImage = uploadFile;
+    let files= req.files
+    if(!isValidFiles(files))
+    return res.status(400).send({ status:false, msg:"invalid file"})
+
+
     if(!Object.keys(getUsersData).length > 0) return res.status(404).send({
         status:false,
         message:"Please Enter Data To Create User"
     })
-    getUsersData = JSON.parse(JSON.stringify(getUsersData).replace(/"\s+|\s+"/g,'"'))
+  
     let {fname,lname,phone,email,password,address} =getUsersData
+
+    getAddress = JSON.parse(getUsersData.address)
+    address = getAddress
+    getUsersData.address = address
+    console.log(getUsersData)
+     
+/*
+    if (address) {
+      const parsedAddress = JSON.parse(getUsersData.address);
+      address = parsedAddress;
+      getUsersData.address = address
+
+  }*/
+
+
+
+     getUsersData.profileImage = await uploadFile(files[0])
    
     const regexValidator = function(val){
         let regx = /^[a-zA-z]+([\s][a-zA-Z]+)*$/;
@@ -87,8 +79,6 @@ const createUser = async function(req, res){
       status:false,
       message:"Plaese Enter Valid Name with Only alphabet"
   });
-
-
 
     const phoneRegex = /^[6-9]\d{9}$/gi;
     let usedPhone = await userModel.findOne({phone:phone})
@@ -194,13 +184,15 @@ catch (error) {
 };
 
 
+//***************************************************************************************************************************** */
+
 const userLogin = async (req,res)=>{
     try {
         let data= req.body
         let {email,password}= data        
-        if(!isValidRequestBody(data)){
-            return res.status(400).send({status:false,msg:"Please enter email and Password"})
-        }
+       // if(!isValidRequestBody(data)){
+         //   return res.status(400).send({status:false,msg:"Please enter email and Password"})
+        //}
         if(!isValid(email)) return res.status(400).send({ status:false,msg:"Please enter email"});
         const emailValidator = /^\w+([\.-]?\w+)@\w+([\.-]?\w+)(\.\w{2,3})+$/
         if (!emailValidator.test(email)) {
@@ -221,21 +213,22 @@ const userLogin = async (req,res)=>{
         res.header('Authorisation', token)
         return res.status(200).send({ status: true,
              message: "User successfully loggedin",
-              data: token });
+              data: {token: token,useId: user._id}});
     } catch (error) {
         res.status(500).send({status:false,msg:error.message})
     }
  }
 
 
+
+//*********************************************************************************************************************************** */
+
+
 const getUser = async (req, res) => {
   try {
     let userId = req.params.userId;
-    if (!isValidObjectId(userId))
-      return res
-        .status(400)
-        .send({ status: false, msg: `Oops! ${userId} This Not Valid UserId ` });
-    let userDetail = await userModel.findById({ userId });
+ 
+    let userDetail = await userModel.findById(userId );
     if (!userDetail) {
       return res.status(404).send({ status: false, msg: "User you are searching for is not here" });
     } else {
