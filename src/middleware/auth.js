@@ -16,7 +16,7 @@ const auth = async (req,res,next) =>{
         if (!token) return res.status(403).send({ status: false, message: "Missing authentication token in request" })
 
         
-        let decodedToken = jwt.verify(token, "My private key")
+        let decodedToken = jwt.verify(token, "group68")
         
         if (!decodedToken) {
             return res.status(403).send({ status: false, message: "Invalid authentication token in request" })
